@@ -63,7 +63,7 @@ class DeliveryUseCasesTest {
     @Test fun statusAndSoftDeletePreserveRowButHideNormalQueries() = runTest {
         val repository = FakeDeliveryRepository()
         val id = SaveDelivery(repository, clock)(validDraft(), "01001000")
-        ChangeDeliveryStatus(repository, clock)(id, DeliveryStatus.IN_TRANSIT)
+        ChangeDeliveryStatus(repository, clock, RecordingDeliveryNotifier())(id, DeliveryStatus.IN_TRANSIT)
         assertEquals(DeliveryStatus.IN_TRANSIT, repository.getById(id)!!.status)
         DeleteDelivery(repository, clock)(id)
         assertNull(repository.getById(id))

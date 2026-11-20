@@ -4,6 +4,8 @@ import android.content.Context
 import androidx.room.Room
 import com.example.appentregafacil.BuildConfig
 import com.example.appentregafacil.data.local.DeliveryDatabase
+import com.example.appentregafacil.data.notification.AndroidDeliveryNotifier
+import com.example.appentregafacil.domain.notification.DeliveryNotifier
 import com.example.appentregafacil.data.remote.BrasilApiService
 import com.example.appentregafacil.data.repository.BrasilApiAddressRepository
 import com.example.appentregafacil.data.repository.RoomDeliveryRepository
@@ -49,11 +51,13 @@ object AppModule {
 
     @Provides fun deliveryRepository(impl: RoomDeliveryRepository): DeliveryRepository = impl
     @Provides fun addressRepository(impl: BrasilApiAddressRepository): AddressRepository = impl
+    @Provides fun deliveryNotifier(impl: AndroidDeliveryNotifier): DeliveryNotifier = impl
     @Provides fun clock(): Clock = Clock.systemUTC()
     @Provides fun observe(repository: DeliveryRepository) = ObserveDeliveries(repository)
     @Provides fun get(repository: DeliveryRepository) = GetDelivery(repository)
     @Provides fun lookup(repository: AddressRepository) = LookupPostalCode(repository)
     @Provides fun save(repository: DeliveryRepository, clock: Clock) = SaveDelivery(repository, clock)
-    @Provides fun changeStatus(repository: DeliveryRepository, clock: Clock) = ChangeDeliveryStatus(repository, clock)
+    @Provides fun changeStatus(repository: DeliveryRepository, clock: Clock, notifier: DeliveryNotifier) =
+        ChangeDeliveryStatus(repository, clock, notifier)
     @Provides fun delete(repository: DeliveryRepository, clock: Clock) = DeleteDelivery(repository, clock)
 }

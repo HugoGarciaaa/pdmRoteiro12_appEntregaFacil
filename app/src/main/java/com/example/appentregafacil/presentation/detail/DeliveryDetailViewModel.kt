@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.appentregafacil.domain.model.Delivery
 import com.example.appentregafacil.domain.model.DeliveryStatus
+import com.example.appentregafacil.domain.notification.NotificationResult
 import com.example.appentregafacil.domain.usecase.ChangeDeliveryStatus
 import com.example.appentregafacil.domain.usecase.DeleteDelivery
 import com.example.appentregafacil.domain.usecase.GetDelivery
@@ -20,6 +21,7 @@ data class DeliveryDetailState(
     val isLoading: Boolean = true,
     val isWorking: Boolean = false,
     val message: String? = null,
+    val notice: String? = null,
     val loadFailed: Boolean = false,
     val deleted: Boolean = false,
 )
@@ -48,14 +50,22 @@ class DeliveryDetailViewModel @Inject constructor(
         }
     }
 
-    fun status(status: DeliveryStatus) = work { changeStatus(id, status) }
+    fun status(status: DeliveryStatus) = work {
+        val notice = when (changeStatus(id, status)) {
+            NotificationResult.POSTED -> "Status atualizado. Notificação enviada."
+            NotificationResult.DISABLED -> "Status atualizado. Ative as notificações para receber os avisos."
+            NotificationResult.FAILED -> "Status atualizado, mas não foi possível enviar a notificação."
+            null -> "A entrega já está com esse status."
+        }
+        mutableState.update { it.copy(notice = notice) }
+    }
     fun delete() = work {
         delete(id)
         mutableState.update { it.copy(deleted = true) }
     }
     private fun work(action: suspend () -> Unit) {
         if (state.value.isWorking || state.value.delivery == null) return
-        mutableState.update { it.copy(isWorking = true, message = null) }
+        mutableState.update { it.copy(isWorking = true, message = null, notice = null) }
         viewModelScope.launch {
             try { action() } catch (error: Exception) {
                 mutableState.update { it.copy(message = error.userMessage()) }

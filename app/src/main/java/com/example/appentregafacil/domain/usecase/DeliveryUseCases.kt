@@ -1,6 +1,8 @@
 package com.example.appentregafacil.domain.usecase
 
 import com.example.appentregafacil.domain.model.*
+import com.example.appentregafacil.domain.notification.DeliveryNotifier
+import com.example.appentregafacil.domain.notification.NotificationResult
 import com.example.appentregafacil.domain.repository.AddressRepository
 import com.example.appentregafacil.domain.repository.DeliveryRepository
 import kotlinx.coroutines.flow.Flow
@@ -51,8 +53,19 @@ class SaveDelivery(private val repository: DeliveryRepository, private val clock
     }
 }
 
-class ChangeDeliveryStatus(private val repository: DeliveryRepository, private val clock: Clock) {
-    suspend operator fun invoke(id: Long, status: DeliveryStatus) = repository.changeStatus(id, status, clock.instant())
+class ChangeDeliveryStatus(
+    private val repository: DeliveryRepository,
+    private val clock: Clock,
+    private val notifier: DeliveryNotifier,
+) {
+    suspend operator fun invoke(id: Long, status: DeliveryStatus): NotificationResult? {
+        val delivery = repository.getById(id) ?: throw DeliveryNotFoundException()
+        if (delivery.status == status) return null
+        val now = clock.instant()
+        repository.changeStatus(id, status, now)
+        // O aviso só é publicado depois da persistência bem-sucedida.
+        return notifier.notifyStatusChanged(delivery.copy(status = status, updatedAt = now))
+    }
 }
 
 class DeleteDelivery(private val repository: DeliveryRepository, private val clock: Clock) {

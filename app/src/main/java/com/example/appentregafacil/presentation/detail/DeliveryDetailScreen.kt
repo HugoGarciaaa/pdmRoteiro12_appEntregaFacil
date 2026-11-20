@@ -12,6 +12,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.appentregafacil.presentation.common.*
+import com.example.appentregafacil.presentation.notification.NotificationPermissionCard
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -29,6 +30,7 @@ fun DeliveryDetailScreen(onBack: () -> Unit, onEdit: (Long) -> Unit, onDeleted: 
         else Column(Modifier.fillMaxSize().padding(padding).verticalScroll(rememberScrollState()).padding(20.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)) {
             state.message?.let { MessageCard(it) }
+            state.notice?.let { MessageCard(it, isError = false) }
             if (state.loadFailed) Button(onClick = viewModel::load) { Text("Tentar novamente") }
             val delivery = state.delivery
             if (delivery == null && !state.loadFailed && !state.deleted && !state.isWorking) Text("Entrega não encontrada ou excluída.")
@@ -51,6 +53,7 @@ fun DeliveryDetailScreen(onBack: () -> Unit, onEdit: (Long) -> Unit, onDeleted: 
                     StatusSelector(it.status, { selected -> selected?.let(viewModel::status) }, enabled = !state.isWorking)
                 }
                 if (state.isWorking) LinearProgressIndicator(Modifier.fillMaxWidth())
+                NotificationPermissionCard(enabled = !state.isWorking)
                 Button(onClick = { onEdit(it.id) }, enabled = !state.isWorking, modifier = Modifier.fillMaxWidth()) { Text("Editar entrega") }
                 OutlinedButton(onClick = { confirmDelete = true }, enabled = !state.isWorking,
                     colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error), modifier = Modifier.fillMaxWidth()) { Text("Excluir entrega") }

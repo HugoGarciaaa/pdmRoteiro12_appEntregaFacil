@@ -1,3 +1,10 @@
 <resources>
     <string name="app_name">EntregaFácil</string>
+    <string name="delivery_channel_name">Atualizações de entregas</string>
+    <string name="delivery_channel_description">Avisos sobre alterações no status das suas entregas.</string>
+    <string name="delivery_notification_title">Entrega #%1$s atualizada</string>
+    <string name="delivery_notification_description">%1$s — status: %2$s.</string>
+    <string name="delivery_status_pending">Pendente</string>
+    <string name="delivery_status_in_transit">Em transporte</string>
+    <string name="delivery_status_delivered">Entregue</string>
 </resources>

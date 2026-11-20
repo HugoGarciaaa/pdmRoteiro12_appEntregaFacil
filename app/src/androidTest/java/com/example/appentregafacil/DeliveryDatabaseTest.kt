@@ -6,6 +6,8 @@ import androidx.test.platform.app.InstrumentationRegistry
 import com.example.appentregafacil.data.local.*
 import com.example.appentregafacil.data.repository.RoomDeliveryRepository
 import com.example.appentregafacil.domain.model.DeliveryStatus
+import com.example.appentregafacil.domain.model.DeliveryDraft
+import com.example.appentregafacil.domain.usecase.SaveDelivery
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.junit.After
@@ -14,6 +16,9 @@ import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import java.time.Instant
+import java.time.Clock
+import java.time.ZoneOffset
+import java.util.UUID
 
 @RunWith(AndroidJUnit4::class)
 class DeliveryDatabaseTest {
@@ -22,6 +27,40 @@ class DeliveryDatabaseTest {
         database = Room.inMemoryDatabaseBuilder(InstrumentationRegistry.getInstrumentation().targetContext, DeliveryDatabase::class.java).build()
     }
     @After fun close() { database.close() }
+
+    @Test fun persistsRegistrationAndEditsAfterClosingAndReopeningDatabase() = runTest {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val name = "delivery-persistence-test-${UUID.randomUUID()}.db"
+        val now = Instant.parse("2026-11-19T15:00:00Z")
+        val draft = DeliveryDraft(recipientName = "Teste de persistência", packageDescription = "Livros",
+            postalCode = "01001000", street = "Praça da Sé", number = "100", complement = "Sala 2",
+            neighborhood = "Sé", city = "São Paulo", state = "SP")
+        fun reopen() {
+            database.close()
+            database = Room.databaseBuilder(context, DeliveryDatabase::class.java, name).build()
+        }
+        try {
+            reopen()
+            val id = SaveDelivery(RoomDeliveryRepository(database.deliveryDao()), Clock.fixed(now, ZoneOffset.UTC))(draft, "01001000")
+            reopen()
+            val repository = RoomDeliveryRepository(database.deliveryDao())
+            assertEquals("100", repository.getById(id)!!.number)
+            assertEquals("Sala 2", repository.getById(id)!!.complement)
+            val updatedId = SaveDelivery(repository, Clock.fixed(now.plusSeconds(60), ZoneOffset.UTC))(
+                draft.copy(number = "200", complement = "Sala 3"), "01001000", id)
+            assertEquals(id, updatedId)
+            reopen()
+            val restored = database.deliveryDao().getById(id)!!
+            assertEquals("200", restored.number)
+            assertEquals("Sala 3", restored.complement)
+            assertEquals(now, restored.createdAt)
+            assertEquals(now.plusSeconds(60), restored.updatedAt)
+            assertEquals(1, database.deliveryDao().observeActive().first().size)
+        } finally {
+            database.close()
+            context.deleteDatabase(name) // Somente o banco de teste, nunca entregafacil.db.
+        }
+    }
 
     @Test fun softDeleteHidesRowAndPreservesItPhysically() = runTest {
         val dao = database.deliveryDao()
